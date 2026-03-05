@@ -602,6 +602,8 @@
     </div>
 
     <script>
+        var touchStartY = 0;
+
         function handleScrollSnap(e) {
             const hero = document.getElementById('hero-container');
             const dashboard = document.getElementById('dashboard-container');
@@ -614,6 +616,19 @@
                 dashboard.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
                 dashboard.classList.add('translate-y-[100vh]', 'opacity-0', 'pointer-events-none');
             }
+        }
+
+        function handleTouchStart(e) {
+            touchStartY = e.touches[0].clientY;
+        }
+
+        function handleTouchMove(e) {
+            if (!touchStartY) return;
+            var deltaY = touchStartY - e.touches[0].clientY;
+            if (Math.abs(deltaY) < 30) return;
+            e.preventDefault();
+            handleScrollSnap({ deltaY: deltaY });
+            touchStartY = 0;
         }
 
         const form = document.getElementById('seo-form');
@@ -635,6 +650,8 @@
             } else { states.error.classList.add('hidden'); }
             if (stateName === 'results') {
                 window.removeEventListener('wheel', handleScrollSnap);
+                window.removeEventListener('touchstart', handleTouchStart);
+                window.removeEventListener('touchmove', handleTouchMove);
                 document.body.classList.remove('overflow-hidden');
                 document.body.classList.add('overflow-auto');
                 inputView.classList.remove('opacity-100', 'translate-y-0');
@@ -654,7 +671,10 @@
             setTimeout(() => {
                 reportView.classList.add('hidden'); inputView.style.display = ''; inputView.classList.remove('hidden');
                 document.body.classList.remove('overflow-auto'); document.body.classList.add('overflow-hidden');
-                window.addEventListener('wheel', handleScrollSnap); window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.addEventListener('wheel', handleScrollSnap);
+                window.addEventListener('touchstart', handleTouchStart, { passive: true });
+                window.addEventListener('touchmove', handleTouchMove, { passive: false });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 setTimeout(() => { inputView.classList.remove('opacity-0', '-translate-y-10'); inputView.classList.add('opacity-100', 'translate-y-0'); }, 50);
             }, 700);
             document.getElementById('score-ring').style.strokeDasharray = '0, 100';
@@ -729,6 +749,8 @@
 
             // ===== CRITICAL SCROLL BUG FIX (FIRST THING) =====
             window.removeEventListener('wheel', handleScrollSnap);
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchmove', handleTouchMove);
             document.body.style.overflow = 'auto';
             // ===== END SCROLL FIX =====
 
@@ -896,6 +918,8 @@
                 });
             }
             window.addEventListener('wheel', handleScrollSnap);
+            window.addEventListener('touchstart', handleTouchStart, { passive: true });
+            window.addEventListener('touchmove', handleTouchMove, { passive: false });
         });
     </script>
 </body>
