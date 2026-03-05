@@ -1018,161 +1018,173 @@
             showState('loading');
 
             try {
-                const response = await fetch('https://seo-analyzer-backend-dsok.onrender.com', {
+                // 1. Notice the /analyze at the end
+                const response = await fetch('https://seo-analyzer-backend-dsok.onrender.com/analyze', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, target_keyword: keyword })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    // 2. We send both the URL and the Keyword as a package
+                    body: JSON.stringify({
+                        url: url,
+                        target_keyword: keyword
+                    })
                 });
-
-                const data = await response.json();
-                console.log('Backend Data:', data);
 
                 if (!response.ok) {
-                    throw new Error(data.detail || 'Failed to analyze the URL');
+                    throw new Error(`Server error: ${response.status}`);
                 }
 
-                // Render Results
-                document.getElementById('result-url').href = url;
-                document.getElementById('result-url').querySelector('span').textContent = url;
-                document.getElementById('result-keyword').textContent = keyword;
+                const data = await response.json();
+                showResults(data); // This sends the data to your cards
 
-                const metricsContainer = document.getElementById('metrics-container');
-                metricsContainer.innerHTML = '';
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                alert("Connection failed. Make sure your Render backend is 'Live' and not sleeping.");
+            }
 
-                let passedCount = 0;
-                let totalCount = 7;
+            // Render Results
+            document.getElementById('result-url').href = url;
+            document.getElementById('result-url').querySelector('span').textContent = url;
+            document.getElementById('result-keyword').textContent = keyword;
 
-                // Title Icon
-                const titleIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
-                metricsContainer.innerHTML += createMetricCard(
-                    'Title Tag', data.title.pass,
-                    data.title.present ? data.title.text : 'No title tag found.',
-                    data.title.present ? `${data.title.length} chars` : 'Missing',
-                    '50 - 60 chars',
-                    titleIcon,
-                    data.title.ai_recommendations,
-                    0,
-                    'lg:col-span-2'
-                );
-                if (data.title.pass) passedCount++;
+            const metricsContainer = document.getElementById('metrics-container');
+            metricsContainer.innerHTML = '';
 
-                // Meta Desc Icon
-                const metaIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h7"></path></svg>`;
-                metricsContainer.innerHTML += createMetricCard(
-                    'Meta Description', data.meta_description.pass,
-                    data.meta_description.present ? data.meta_description.text : 'No meta description found.',
-                    data.meta_description.present ? `${data.meta_description.length} chars` : 'Missing',
-                    '150 - 160 chars',
-                    metaIcon,
-                    data.meta_description.ai_recommendations,
-                    150,
-                    'lg:col-span-2'
-                );
-                if (data.meta_description.pass) passedCount++;
+            let passedCount = 0;
+            let totalCount = 7;
 
-                // H1 Icon
-                const h1Icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>`;
-                let h1Desc = data.h1.count === 0 ? 'No H1 tag found.' : data.h1.count > 1 ? `Found ${data.h1.count} H1 tags.` : data.h1.texts[0];
-                metricsContainer.innerHTML += createMetricCard(
-                    'Heading (H1)', data.h1.pass,
-                    h1Desc,
-                    `${data.h1.count} detected`,
-                    'Exactly 1 tag',
-                    h1Icon,
-                    null,
-                    300,
-                    'lg:col-span-1'
-                );
-                if (data.h1.pass) passedCount++;
+            // Title Icon
+            const titleIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
+            metricsContainer.innerHTML += createMetricCard(
+                'Title Tag', data.title.pass,
+                data.title.present ? data.title.text : 'No title tag found.',
+                data.title.present ? `${data.title.length} chars` : 'Missing',
+                '50 - 60 chars',
+                titleIcon,
+                data.title.ai_recommendations,
+                0,
+                'lg:col-span-2'
+            );
+            if (data.title.pass) passedCount++;
 
-                // Keyword Icon
-                const keyIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>`;
-                metricsContainer.innerHTML += createMetricCard(
-                    'Keyword Density', data.keyword_density.pass,
-                    `Found ${data.keyword_density.count} exact matches in body text.`,
-                    `${data.keyword_density.density_percentage}%`,
-                    '1.0% - 3.0%',
-                    keyIcon,
-                    null,
-                    450,
-                    'lg:col-span-1'
-                );
-                if (data.keyword_density.pass) passedCount++;
+            // Meta Desc Icon
+            const metaIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h7"></path></svg>`;
+            metricsContainer.innerHTML += createMetricCard(
+                'Meta Description', data.meta_description.pass,
+                data.meta_description.present ? data.meta_description.text : 'No meta description found.',
+                data.meta_description.present ? `${data.meta_description.length} chars` : 'Missing',
+                '150 - 160 chars',
+                metaIcon,
+                data.meta_description.ai_recommendations,
+                150,
+                'lg:col-span-2'
+            );
+            if (data.meta_description.pass) passedCount++;
 
-                // Word Count Icon
-                const textIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
-                metricsContainer.innerHTML += createMetricCard(
-                    'Content Length', data.word_count.pass,
-                    `Total words extracted from the readable page body.`,
-                    `${data.word_count.count} words`,
-                    '300+ words',
-                    textIcon,
-                    null,
-                    600,
-                    'lg:col-span-1'
-                );
-                if (data.word_count.pass) passedCount++;
+            // H1 Icon
+            const h1Icon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>`;
+            let h1Desc = data.h1.count === 0 ? 'No H1 tag found.' : data.h1.count > 1 ? `Found ${data.h1.count} H1 tags.` : data.h1.texts[0];
+            metricsContainer.innerHTML += createMetricCard(
+                'Heading (H1)', data.h1.pass,
+                h1Desc,
+                `${data.h1.count} detected`,
+                'Exactly 1 tag',
+                h1Icon,
+                null,
+                300,
+                'lg:col-span-1'
+            );
+            if (data.h1.pass) passedCount++;
 
-                // Links Icon
-                const linkIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>`;
-                metricsContainer.innerHTML += createMetricCard(
-                    'Link Analysis', data.links.pass,
-                    `Total links found on the page.`,
-                    `${data.links.internal} internal, ${data.links.external} external`,
-                    '> 0 links',
-                    linkIcon,
-                    null,
-                    750,
-                    'lg:col-span-1'
-                );
-                if (data.links.pass) passedCount++;
+            // Keyword Icon
+            const keyIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>`;
+            metricsContainer.innerHTML += createMetricCard(
+                'Keyword Density', data.keyword_density.pass,
+                `Found ${data.keyword_density.count} exact matches in body text.`,
+                `${data.keyword_density.density_percentage}%`,
+                '1.0% - 3.0%',
+                keyIcon,
+                null,
+                450,
+                'lg:col-span-1'
+            );
+            if (data.keyword_density.pass) passedCount++;
 
-                // Image Icon
-                const imgIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`;
-                metricsContainer.innerHTML += createMetricCard(
-                    'Image Analysis', data.images.pass,
-                    `Images missing alt text can hurt accessibility.`,
-                    `${data.images.total} images found`,
-                    `${data.images.missing_alt} missing alt`,
-                    imgIcon,
-                    null,
-                    900,
-                    'lg:col-span-1'
-                );
-                if (data.images.pass) passedCount++;
+            // Word Count Icon
+            const textIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
+            metricsContainer.innerHTML += createMetricCard(
+                'Content Length', data.word_count.pass,
+                `Total words extracted from the readable page body.`,
+                `${data.word_count.count} words`,
+                '300+ words',
+                textIcon,
+                null,
+                600,
+                'lg:col-span-1'
+            );
+            if (data.word_count.pass) passedCount++;
 
-                // Initialize Tilt.js
-                if (window.VanillaTilt) {
-                    VanillaTilt.init(document.querySelectorAll("#metrics-container .metric-card"));
-                }
+            // Links Icon
+            const linkIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>`;
+            metricsContainer.innerHTML += createMetricCard(
+                'Link Analysis', data.links.pass,
+                `Total links found on the page.`,
+                `${data.links.internal} internal, ${data.links.external} external`,
+                '> 0 links',
+                linkIcon,
+                null,
+                750,
+                'lg:col-span-1'
+            );
+            if (data.links.pass) passedCount++;
 
-                // Calculate Score
-                const scorePercentage = Math.round((passedCount / totalCount) * 100);
+            // Image Icon
+            const imgIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`;
+            metricsContainer.innerHTML += createMetricCard(
+                'Image Analysis', data.images.pass,
+                `Images missing alt text can hurt accessibility.`,
+                `${data.images.total} images found`,
+                `${data.images.missing_alt} missing alt`,
+                imgIcon,
+                null,
+                900,
+                'lg:col-span-1'
+            );
+            if (data.images.pass) passedCount++;
 
-                // Update circle and text inside timeout allowing browser to render CSS transition
-                showState('results');
+            // Initialize Tilt.js
+            if (window.VanillaTilt) {
+                VanillaTilt.init(document.querySelectorAll("#metrics-container .metric-card"));
+            }
 
-                console.log('Animation triggered for cards');
-                document.querySelectorAll('.result-card').forEach((card, index) => {
-                    setTimeout(() => {
-                        card.classList.remove('opacity-0', 'translate-y-10');
-                        card.classList.add('opacity-100', 'translate-y-0');
-                    }, index * 150);
-                });
+            // Calculate Score
+            const scorePercentage = Math.round((passedCount / totalCount) * 100);
 
-                renderAIBanner(data);
+            // Update circle and text inside timeout allowing browser to render CSS transition
+            showState('results');
 
-                // Dynamically render top-level ai_recommendations as a stunning purple box
-                const existingAiBox = document.getElementById('ai-magic-box');
-                if (existingAiBox) existingAiBox.remove();
+            console.log('Animation triggered for cards');
+            document.querySelectorAll('.result-card').forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.remove('opacity-0', 'translate-y-10');
+                    card.classList.add('opacity-100', 'translate-y-0');
+                }, index * 150);
+            });
 
-                if (data.ai_recommendations && data.ai_recommendations.length > 0) {
-                    const aiBox = document.createElement('div');
-                    aiBox.id = 'ai-magic-box';
-                    aiBox.className = 'p-8 mt-8 rounded-2xl shadow-[0_10px_40px_-10px_rgba(107,33,168,0.5)] bg-gradient-to-br from-indigo-900 to-purple-900 text-white border border-purple-500/50 backdrop-blur-sm transition-all duration-300';
+            renderAIBanner(data);
 
-                    const header = document.createElement('h3');
-                    header.style.cssText = `
+            // Dynamically render top-level ai_recommendations as a stunning purple box
+            const existingAiBox = document.getElementById('ai-magic-box');
+            if (existingAiBox) existingAiBox.remove();
+
+            if (data.ai_recommendations && data.ai_recommendations.length > 0) {
+                const aiBox = document.createElement('div');
+                aiBox.id = 'ai-magic-box';
+                aiBox.className = 'p-8 mt-8 rounded-2xl shadow-[0_10px_40px_-10px_rgba(107,33,168,0.5)] bg-gradient-to-br from-indigo-900 to-purple-900 text-white border border-purple-500/50 backdrop-blur-sm transition-all duration-300';
+
+                const header = document.createElement('h3');
+                header.style.cssText = `
                         color: #ffffff;
                         font-size: 1.25rem;
                         font-weight: 700;
@@ -1182,14 +1194,14 @@
                         gap: 0.6rem;
                         letter-spacing: 0.02em;
                     `;
-                    header.innerHTML = `<span style="font-size:1.4rem;">✨</span> AI Magic Suggestions`;
+                header.innerHTML = `<span style="font-size:1.4rem;">✨</span> AI Magic Suggestions`;
 
-                    const list = document.createElement('ul');
-                    list.style.cssText = 'list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem;';
+                const list = document.createElement('ul');
+                list.style.cssText = 'list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem;';
 
-                    data.ai_recommendations.forEach(rec => {
-                        const li = document.createElement('li');
-                        li.style.cssText = `
+                data.ai_recommendations.forEach(rec => {
+                    const li = document.createElement('li');
+                    li.style.cssText = `
                             color: #e9d5ff;
                             background: rgba(168, 85, 247, 0.15);
                             border: 1px solid rgba(168, 85, 247, 0.3);
@@ -1201,65 +1213,65 @@
                             font-size: 0.95rem;
                             line-height: 1.5;
                         `;
-                        li.innerHTML = `<span style="color:#c084fc; font-weight:700; flex-shrink:0;">→</span> ${rec}`;
-                        list.appendChild(li);
-                    });
+                    li.innerHTML = `<span style="color:#c084fc; font-weight:700; flex-shrink:0;">→</span> ${rec}`;
+                    list.appendChild(li);
+                });
 
-                    aiBox.appendChild(header);
-                    aiBox.appendChild(list);
+                aiBox.appendChild(header);
+                aiBox.appendChild(list);
 
-                    const metricsContainer = document.getElementById('metrics-container');
-                    metricsContainer.parentNode.insertBefore(aiBox, metricsContainer.nextSibling);
+                const metricsContainer = document.getElementById('metrics-container');
+                metricsContainer.parentNode.insertBefore(aiBox, metricsContainer.nextSibling);
+            }
+
+            setTimeout(() => {
+                const ring = document.getElementById('score-ring');
+                const label = document.getElementById('score-label');
+
+                ring.style.strokeDasharray = `${scorePercentage}, 100`;
+
+                // Animate number count up
+                const scoreText = document.getElementById('score-text');
+                let currentScore = 0;
+                const timer = setInterval(() => {
+                    currentScore += Math.ceil((scorePercentage - currentScore) * 0.2) + 1;
+                    if (currentScore >= scorePercentage) {
+                        currentScore = scorePercentage;
+                        clearInterval(timer);
+                    }
+                    scoreText.textContent = currentScore;
+                }, 30);
+
+                // Update ring color based on score
+                ring.classList.remove('text-emerald-400', 'text-amber-400', 'text-rose-500');
+                label.classList.remove('text-emerald-400', 'text-amber-400', 'text-rose-500');
+                if (scorePercentage >= 80) {
+                    ring.classList.add('text-emerald-400');
+                    label.classList.add('text-emerald-400');
+                    label.textContent = 'Excellent';
+                } else if (scorePercentage >= 40) {
+                    ring.classList.add('text-amber-400');
+                    label.classList.add('text-amber-400');
+                    label.textContent = 'Average';
+                } else {
+                    ring.classList.add('text-rose-500');
+                    label.classList.add('text-rose-500');
+                    label.textContent = 'Poor';
                 }
 
-                setTimeout(() => {
-                    const ring = document.getElementById('score-ring');
-                    const label = document.getElementById('score-label');
+            }, 100);
 
-                    ring.style.strokeDasharray = `${scorePercentage}, 100`;
-
-                    // Animate number count up
-                    const scoreText = document.getElementById('score-text');
-                    let currentScore = 0;
-                    const timer = setInterval(() => {
-                        currentScore += Math.ceil((scorePercentage - currentScore) * 0.2) + 1;
-                        if (currentScore >= scorePercentage) {
-                            currentScore = scorePercentage;
-                            clearInterval(timer);
-                        }
-                        scoreText.textContent = currentScore;
-                    }, 30);
-
-                    // Update ring color based on score
-                    ring.classList.remove('text-emerald-400', 'text-amber-400', 'text-rose-500');
-                    label.classList.remove('text-emerald-400', 'text-amber-400', 'text-rose-500');
-                    if (scorePercentage >= 80) {
-                        ring.classList.add('text-emerald-400');
-                        label.classList.add('text-emerald-400');
-                        label.textContent = 'Excellent';
-                    } else if (scorePercentage >= 40) {
-                        ring.classList.add('text-amber-400');
-                        label.classList.add('text-amber-400');
-                        label.textContent = 'Average';
-                    } else {
-                        ring.classList.add('text-rose-500');
-                        label.classList.add('text-rose-500');
-                        label.textContent = 'Poor';
-                    }
-
-                }, 100);
-
-            } catch (err) {
-                document.getElementById('error-message').textContent = err.message || 'An error occurred while connecting to the server.';
-                showState('error');
-            } finally {
-                // Reset button state
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                btnText.textContent = "Run Full Analysis";
-                btnIcon.classList.remove('hidden');
-                btnSpinner.classList.add('hidden');
-            }
+        } catch (err) {
+            document.getElementById('error-message').textContent = err.message || 'An error occurred while connecting to the server.';
+            showState('error');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            btnText.textContent = "Run Full Analysis";
+            btnIcon.classList.remove('hidden');
+            btnSpinner.classList.add('hidden');
+        }
         });
 
         async function downloadPDF() {
